@@ -1,11 +1,10 @@
-package com.astuter.capstone;
+package com.astuter.capstone.gui;
 
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.design.widget.FloatingActionButton;
@@ -16,7 +15,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 
-import com.astuter.capstone.dummy.DummyContent;
+import com.astuter.capstone.R;
+import com.astuter.capstone.provider.Places;
 
 import java.util.List;
 
@@ -68,15 +68,15 @@ public class PlaceListActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
-        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(DummyContent.ITEMS));
+        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(Places.ITEMS));
     }
 
     public class SimpleItemRecyclerViewAdapter
             extends RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder> {
 
-        private final List<DummyContent.DummyItem> mValues;
+        private final List<Places.DummyItem> mValues;
 
-        public SimpleItemRecyclerViewAdapter(List<DummyContent.DummyItem> items) {
+        public SimpleItemRecyclerViewAdapter(List<Places.DummyItem> items) {
             mValues = items;
         }
 
@@ -124,7 +124,7 @@ public class PlaceListActivity extends AppCompatActivity {
             public final View mView;
             public final TextView mIdView;
             public final TextView mContentView;
-            public DummyContent.DummyItem mItem;
+            public Places.DummyItem mItem;
 
             public ViewHolder(View view) {
                 super(view);

@@ -9,5 +9,5 @@
     android:layout_marginLeft="16dp"
     android:layout_marginRight="16dp"
     app:layoutManager="LinearLayoutManager"
-    tools:context="com.astuter.capstone.PlaceListActivity"
+    tools:context=".gui.PlaceListActivity"
     tools:listitem="@layout/place_list_content" />

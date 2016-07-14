@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">Capstone</string>
     <string name="title_place_detail">Place Detail</string>
+    <string name="title_activity_map">Map</string>
+
+    <string name="google_api_android_key">AIzaSyCRHfwQPTVvGfGtGIE46N5kvhUjYS7PaKY</string>
+    <string name="google_api_server_key">AIzaSyAHWzZVpYn4shTmyKHnEuX6_78VLN-TbW8</string>
+
+
 </resources>
