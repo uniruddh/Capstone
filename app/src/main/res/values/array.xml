@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="nearby_places">
+        <item>Amusement Park</item>
+        <item>Aquarium</item>
+        <item>Art Gallery</item>
+        <item>ATM</item>
+        <item>Cafe</item>
+        <item>Movie Theater</item>
+        <item>Museum</item>
+        <item>Park</item>
+        <item>Point of Interest</item>
+        <item>Medical Store</item>
+        <item>Restaurant</item>
+        <item>Shopping Mall</item>
+        <item>Zoo</item>
+        <item>restaurant</item>
+    </string-array>
+
+    <string-array name="nearby_places_key">
+        <item>amusement_park</item>
+        <item>aquarium</item>
+        <item>art_gallery</item>
+        <item>atm</item>
+        <item>cafe</item>
+        <item>movie_theater</item>
+        <item>museum</item>
+        <item>park</item>
+        <item>point_of_interest</item>
+        <item>pharmacy</item>
+        <item>restaurant</item>
+        <item>shopping_mall</item>
+        <item>zoo</item>
+    </string-array>
+</resources>

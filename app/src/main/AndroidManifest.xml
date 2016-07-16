@@ -3,6 +3,7 @@
     package="com.astuter.capstone">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -42,13 +43,21 @@
 
         <activity
             android:name=".gui.MapActivity"
-            android:label="@string/title_activity_map">
-           <!-- <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+            android:label="@string/title_activity_map" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>-->
-        </activity>
+        <service
+            android:name=".remote.NearbyPlaceService"
+            android:exported="false" />
+
+        <provider
+            android:name=".provider.PlaceProvider"
+            android:authorities="com.astuter.capstone"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:label="NearbyPlaceProvider"
+            android:readPermission="com.astuter.capstone.READ"
+            android:writePermission="com.astuter.capstone.WRITE" />
+
     </application>
 
 </manifest>
