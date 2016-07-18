@@ -1,6 +1,7 @@
 package com.astuter.capstone.gui;
 
 import android.Manifest;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -73,7 +74,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
     private SharedPreferences preferences;
     private RecyclerView mRecyclerView;
     private PlaceListAdapter mPlaceListAdapter;
-
+    private ProgressDialog progress;
 
     private String[] PLACE_TYPE;
     private final int PERMISSION_ACCESS_FINE_LOCATION = 1;
@@ -87,6 +88,10 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
 
         preferences = PreferenceManager.getDefaultSharedPreferences(PlaceListActivity.this);
         PLACE_TYPE = getResources().getStringArray(R.array.nearby_places_key);
+
+        progress = new ProgressDialog(this);
+        progress.setTitle("Loading");
+        progress.setMessage("Please Wait ...");
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -147,7 +152,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
         mRecyclerView.setAdapter(mPlaceListAdapter);
 
         // User loader to fetch data from SQLite
-        getSupportLoaderManager().initLoader(1, null, PlaceListActivity.this);
+        getSupportLoaderManager().initLoader(PLACE_LOADER, null, PlaceListActivity.this);
 
         if (findViewById(R.id.place_detail_container) != null) {
             // The detail container view will be present only in the
@@ -162,12 +167,13 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
     @Override
     public Loader<Cursor> onCreateLoader(int arg0, Bundle arg1) {
         Uri CONTENT_URI = PlaceContract.PlaceEntry.CONTENT_URI;
+
         return new CursorLoader(PlaceListActivity.this, CONTENT_URI, null, null, null, null);
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> arg0, Cursor cursor) {
-        if(!cursor.isClosed()){
+        if (!cursor.isClosed()) {
             cursor.moveToFirst();
             mPlaceListAdapter.swapCursor(cursor);
             mPlaceListAdapter.notifyDataSetChanged();
@@ -211,20 +217,22 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
     public void onReceiveResult(int resultCode, Bundle resultData) {
         switch (resultCode) {
             case NearbyPlaceService.STATUS_RUNNING:
-
-                setProgressBarIndeterminateVisibility(true);
+                progress.show();
                 break;
             case NearbyPlaceService.STATUS_FINISHED:
                 /* Hide progress & extract result from bundle */
-                setProgressBarIndeterminateVisibility(false);
-
-                mPlaceListAdapter = new PlaceListAdapter(PlaceListActivity.this);
-//                mPlaceListAdapter.notifyDataSetChanged();
-
-
+                if (progress.isShowing()) {
+                    progress.dismiss();
+                }
+//                mPlaceListAdapter = new PlaceListAdapter(PlaceListActivity.this);
+                mPlaceListAdapter.notifyDataSetChanged();
                 break;
             case NearbyPlaceService.STATUS_ERROR:
                 /* Handle the error */
+                if (progress.isShowing()) {
+                    progress.dismiss();
+                }
+
                 String error = resultData.getString(Intent.EXTRA_TEXT);
                 Toast.makeText(this, error, Toast.LENGTH_LONG).show();
                 break;
@@ -269,7 +277,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
                 Log.e("onConnected", "mCurrentLocation: " + mCurrentLocation.getLatitude() + " , " + mCurrentLocation.getLongitude());
 
                 //@todo: To get nearby places via intent service
-                startNearbyPlaceService();
+
             }
         }
     }
@@ -327,12 +335,6 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
 
 
     public class PlaceListAdapter extends RecyclerViewCursorAdapter<PlaceListAdapter.PlaceViewHolder> {
-
-        /**
-         * Index of the name column.
-         */
-        private static final int INDEX_NAME = 3;
-
 
         public PlaceListAdapter(Context context) {
             super(context);

@@ -4,7 +4,6 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.net.Uri;
 import android.provider.BaseColumns;
-import android.text.format.Time;
 
 /**
  * Created by astuter on 15/07/16.
@@ -29,17 +28,6 @@ public class PlaceContract {
     public static final String PATH_PLACE = "place";
     public static final String PATH_REVIEW = "review";
 
-    // To make it easy to query for the exact date, we normalize all dates that go into
-    // the database to the start of the the Julian day at UTC.
-    public static long normalizeDate(long startDate) {
-        // normalize the start date to the beginning of the (UTC) day
-        Time time = new Time();
-        time.set(startDate);
-        int julianDay = Time.getJulianDay(startDate, time.gmtoff);
-        return time.setJulianDay(julianDay);
-    }
-
-
     /* Inner class that defines the table contents of the place table */
     public static final class PlaceEntry implements BaseColumns {
 
@@ -60,28 +48,8 @@ public class PlaceContract {
         public static final String COLUMN_RATING = "rating";
         public static final String COLUMN_VICINITY = "vicinity";
 
-        public static Uri buildWeatherUri(long id) {
+        public static Uri buildPlaceUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);
-        }
-
-        /*
-           Student: This is the buildWeatherLocation function you filled in.
-         */
-        public static Uri buildWeatherLocation(String locationSetting) {
-            return CONTENT_URI.buildUpon().appendPath(locationSetting).build();
-        }
-
-        public static Uri buildWeatherLocationWithDate(String locationSetting, long date) {
-            return CONTENT_URI.buildUpon().appendPath(locationSetting)
-                    .appendPath(Long.toString(normalizeDate(date))).build();
-        }
-
-        public static String getLocationSettingFromUri(Uri uri) {
-            return uri.getPathSegments().get(1);
-        }
-
-        public static long getDateFromUri(Uri uri) {
-            return Long.parseLong(uri.getPathSegments().get(2));
         }
     }
 
@@ -104,7 +72,7 @@ public class PlaceContract {
         public static final String COLUMN_TIME = "time";
         public static final String COLUMN_RATING = "rating";
 
-        public static Uri buildWeatherUri(long id) {
+        public static Uri buildReviewUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);
         }
     }

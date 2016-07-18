@@ -110,7 +110,6 @@ public class NearbyPlaceService extends IntentService {
                 String name = post.getString("name");
                 String vicinity = post.getString("vicinity");
 
-
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(PlaceContract.PlaceEntry.COLUMN_NAME, name);
                 contentValues.put(PlaceContract.PlaceEntry.COLUMN_PLACE_ID, placeId);
