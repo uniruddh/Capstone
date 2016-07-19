@@ -50,14 +50,14 @@ public class PrefsManager {
         return new Gson().fromJson(json, Location.class);
     }
 
-    public void setMapPlaceLocation(HashMap<String, Object> hashMap) {
+    public void setMapPlaceLocation(HashMap<String, Location> hashMap) {
         String locationJson = new Gson().toJson(hashMap);
         preferences.edit().putString(PREF_MAP_PLACE_LOCATION, locationJson).apply();
     }
 
-    public HashMap<String, Object> getMapPlaceLocation() {
-        String mapJson = preferences.getString(PREF_CURRENT_LOCATION, "");
-        java.lang.reflect.Type type = new TypeToken<HashMap<String, Object>>() {
+    public HashMap<String, Location> getMapPlaceLocation() {
+        String mapJson = preferences.getString(PREF_MAP_PLACE_LOCATION, "");
+        java.lang.reflect.Type type = new TypeToken<HashMap<String, Location>>() {
         }.getType();
         return new Gson().fromJson(mapJson, type);
     }

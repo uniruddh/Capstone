@@ -74,7 +74,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
     private PlaceListAdapter mPlaceListAdapter;
     private ProgressDialog progress;
 
-    private HashMap<String, Object> placeLocationMap;
+    private HashMap<String, Location> placeLocationMap;
 
     private String[] PLACE_TYPE;
     private final int PERMISSION_ACCESS_FINE_LOCATION = 1;
@@ -114,7 +114,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
 
                     // @Todo: get Nearby places as per user choice here
                     Log.e("navigationSpinner", "you selected:" + PLACE_TYPE[position]);
-
+                    fetchNearbyPlaces();
                 }
 
                 @Override
@@ -183,8 +183,8 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
     @Override
     protected void onStop() {
         if (mGoogleApiClient.isConnected()) {
-            mGoogleApiClient.disconnect();
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+            mGoogleApiClient.disconnect();
         }
         super.onStop();
     }
@@ -284,42 +284,33 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
 
     private void fetchNearbyPlaces() {
         // Get PlaceLocationMap for fetching nearBy Places
-        HashMap<String, Object> defaultMap = PrefsManager.instance(getApplicationContext()).getMapPlaceLocation();
+        HashMap<String, Location> defaultMap = PrefsManager.instance(getApplicationContext()).getMapPlaceLocation();
         if (defaultMap != null) {
             placeLocationMap = defaultMap;
         } else {
             placeLocationMap = new HashMap<>();
         }
 
-        if (placeLocationMap.size() == 0) {
+        String placeType = PrefsManager.instance(getApplicationContext()).getCurrentPlaceType();
+
+        if (placeLocationMap.size() == 0 || !placeLocationMap.keySet().contains(placeType)) {
             // this shoudl be first time user has launched the app, fetch places using default configurations
             startNearbyPlaceService();
 
-            placeLocationMap.put(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType(),
-                    PrefsManager.instance(getApplicationContext()).getCurrentLocation());
+            placeLocationMap.put(placeType, PrefsManager.instance(getApplicationContext()).getCurrentLocation());
             PrefsManager.instance(getApplicationContext()).setMapPlaceLocation(placeLocationMap);
-        } else if (placeLocationMap.size() > 0) {
 
-            for (String place : placeLocationMap.keySet()) {
-                Location locations = (Location) placeLocationMap.get(place);
+        } else if (placeLocationMap.size() > 0 && placeLocationMap.keySet().contains(placeType)) {
 
-                if (place.equalsIgnoreCase(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType())) {
-                    // This type of place data already exists, fetch from database
-                    startNearbyPlaceService();
+            Location locations = placeLocationMap.get(placeType);
 
-                    placeLocationMap.put(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType(),
-                            PrefsManager.instance(getApplicationContext()).getCurrentLocation());
-                    PrefsManager.instance(getApplicationContext()).setMapPlaceLocation(placeLocationMap);
+            if (PrefsManager.instance(getApplicationContext()).getCurrentLocation().distanceTo(locations) == 1000) {
+                // First delete all places of this type
+                // Then fetch new one for new location
+                startNearbyPlaceService();
 
-                } else if (PrefsManager.instance(getApplicationContext()).getCurrentLocation().distanceTo(locations) == 1000) {
-                    // First delete all places of this type
-                    // Then fetch new one for new location
-                    startNearbyPlaceService();
-
-                    placeLocationMap.put(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType(),
-                            PrefsManager.instance(getApplicationContext()).getCurrentLocation());
-                    PrefsManager.instance(getApplicationContext()).setMapPlaceLocation(placeLocationMap);
-                }
+                placeLocationMap.put(placeType, PrefsManager.instance(getApplicationContext()).getCurrentLocation());
+                PrefsManager.instance(getApplicationContext()).setMapPlaceLocation(placeLocationMap);
             }
         }
     }
