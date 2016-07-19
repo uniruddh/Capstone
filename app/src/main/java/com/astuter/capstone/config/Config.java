@@ -19,8 +19,6 @@ public class Config {
 //    public static final String API_PLACE_PHOTO = API_BASE + "photo?maxwidth=400&photoreference=CnRtAAAATLZNl354RwP_9UKbQ_5Psy40texXePv4oAlgP4qNEkdIrkyse7rPXYGd9D_Uj1rVsQdWT4oRz4QrYAJNpFX7rzqqMlZw2h2E2y5IKMUZ7ouD_SlcHxYq1yL4KbKUv3qtWgTK0A6QbGh87GB3sscrHRIQiG2RrmU_jF4tENr9wGS_YxoUSSDrYjWmrNfeEHSGSc3FyhNLlBU&key=";
     public static final String API_KEY = "AIzaSyAHWzZVpYn4shTmyKHnEuX6_78VLN-TbW8";
 
-    public static final String PREF_PLACE_TYPE = "PREF_PLACE_TYPE";
-
     public static final String KEY_CURRENT_LOCATION = "KEY_CURRENT_LOCATION";
     public static final String KEY_PLACE_TYPE = "KEY_PLACE_TYPE";
     public static final String KEY_PLACE_RESULT_RECEIVER = "KEY_PLACE_RESULT_RECEIVER";
