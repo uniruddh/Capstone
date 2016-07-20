@@ -41,12 +41,13 @@ public class PlaceContract {
         public static final String TABLE_NAME = "place";
 
         public static final String COLUMN_PLACE_ID = "place_id";
-        public static final String COLUMN_NAME = "name";
-        public static final String COLUMN_PHOTO = "photo_reference";
-        public static final String COLUMN_LAT = "lat";
-        public static final String COLUMN_LNG = "lng";
-        public static final String COLUMN_RATING = "rating";
-        public static final String COLUMN_VICINITY = "vicinity";
+        public static final String COLUMN_NAME = "place_name";
+        public static final String COLUMN_PHOTO = "place_photo_reference";
+        public static final String COLUMN_LAT = "place_lat";
+        public static final String COLUMN_LNG = "place_lng";
+        public static final String COLUMN_RATING = "place_rating";
+        public static final String COLUMN_VICINITY = "place_vicinity";
+        public static final String COLUMN_TYPE = "place_type";
 
         public static Uri buildPlaceUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);
@@ -65,12 +66,12 @@ public class PlaceContract {
 
         public static final String TABLE_NAME = "review";
 
-        public static final String COLUMN_PLACE_ID = "place_id";
-        public static final String COLUMN_NAME = "author_name";
-        public static final String COLUMN_PHOTO = "profile_photo_url";
-        public static final String COLUMN_TEXT = "text";
-        public static final String COLUMN_TIME = "time";
-        public static final String COLUMN_RATING = "rating";
+        public static final String COLUMN_PLACE_ID = "rvw_place_id";
+        public static final String COLUMN_NAME = "rvw_author_name";
+        public static final String COLUMN_PHOTO = "rvw_profile_photo_url";
+        public static final String COLUMN_TEXT = "rvw_text";
+        public static final String COLUMN_TIME = "rvw_time";
+        public static final String COLUMN_RATING = "rvw_rating";
 
         public static Uri buildReviewUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);

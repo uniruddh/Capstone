@@ -1,10 +1,17 @@
 <resources>
-    <string name="app_name">Capstone</string>
+    <string name="app_name" translatable="false">Capstone</string>
     <string name="title_place_detail">Place Detail</string>
     <string name="title_activity_map">Map</string>
 
-    <string name="google_api_android_key">AIzaSyCRHfwQPTVvGfGtGIE46N5kvhUjYS7PaKY</string>
-    <string name="google_api_server_key">AIzaSyAHWzZVpYn4shTmyKHnEuX6_78VLN-TbW8</string>
+    <string name="open_location_settings">Open Location Setting</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="no_location_msg">Please enable Location settings</string>
+    <string name="no_internet_msg">No Internet Connection, Can not fetch new Places</string>
+    <string name="error_fetch_nearby_place">Opps, Error while fetching new Places!</string>
+
+    <string name="google_api_android_key" translatable="false">AIzaSyCRHfwQPTVvGfGtGIE46N5kvhUjYS7PaKY</string>
+    <string name="google_api_server_key" translatable="false">AIzaSyAHWzZVpYn4shTmyKHnEuX6_78VLN-TbW8</string>
 
 
 </resources>

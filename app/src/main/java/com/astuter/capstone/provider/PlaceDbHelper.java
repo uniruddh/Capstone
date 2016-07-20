@@ -29,6 +29,7 @@ public class PlaceDbHelper extends SQLiteOpenHelper {
                 PlaceEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
                 PlaceEntry.COLUMN_PLACE_ID + " TEXT NOT NULL, " +
                 PlaceEntry.COLUMN_NAME + " TEXT NOT NULL, " +
+                PlaceEntry.COLUMN_TYPE + " TEXT NOT NULL, " +
                 PlaceEntry.COLUMN_PHOTO + " TEXT NOT NULL, " +
                 PlaceEntry.COLUMN_LAT + " REAL NOT NULL, " +
                 PlaceEntry.COLUMN_LNG + " REAL NOT NULL, " +

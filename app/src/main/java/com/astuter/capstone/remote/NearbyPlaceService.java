@@ -33,6 +33,7 @@ public class NearbyPlaceService extends IntentService {
     public static final int STATUS_ERROR = 2;
 
     private static final String TAG = "NearbyPlaceService";
+    private String placeType;
 
     public NearbyPlaceService() {
         super(NearbyPlaceService.class.getName());
@@ -44,7 +45,7 @@ public class NearbyPlaceService extends IntentService {
 
         ResultReceiver receiver = intent.getParcelableExtra(Config.KEY_PLACE_RESULT_RECEIVER);
         Location location = intent.getParcelableExtra(Config.KEY_CURRENT_LOCATION);
-        String placeType = intent.getStringExtra(Config.KEY_PLACE_TYPE);
+        placeType = intent.getStringExtra(Config.KEY_PLACE_TYPE);
 
         if (!TextUtils.isEmpty(placeType)) {
             Bundle bundle = new Bundle();
@@ -105,23 +106,23 @@ public class NearbyPlaceService extends IntentService {
             JSONArray results = response.optJSONArray("results");
 
             for (int i = 0; i < results.length(); i++) {
-                JSONObject post = results.getJSONObject(i);
-                String placeId = post.getString("place_id");
-                String name = post.getString("name");
-                String vicinity = post.getString("vicinity");
+                JSONObject place = results.getJSONObject(i);
 
-                ContentValues contentValues = new ContentValues();
-                contentValues.put(PlaceContract.PlaceEntry.COLUMN_NAME, name);
-                contentValues.put(PlaceContract.PlaceEntry.COLUMN_PLACE_ID, placeId);
-                contentValues.put(PlaceContract.PlaceEntry.COLUMN_PHOTO, name);
-                contentValues.put(PlaceContract.PlaceEntry.COLUMN_LAT, 0);
-                contentValues.put(PlaceContract.PlaceEntry.COLUMN_LNG, 0);
-                contentValues.put(PlaceContract.PlaceEntry.COLUMN_VICINITY, vicinity);
-                contentValues.put(PlaceContract.PlaceEntry.COLUMN_RATING, name);
+                JSONObject location = place.optJSONObject("geometry").optJSONObject("location");
+                JSONArray photo = place.optJSONArray("photos");
 
-                Uri uri = getContentResolver().insert(PlaceContract.PlaceEntry.CONTENT_URI, contentValues);
+                ContentValues placeInfo = new ContentValues();
+                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_NAME, place.optString("name"));
+                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_PLACE_ID, place.optString("place_id"));
+                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_PHOTO, photo != null ? photo.getJSONObject(0).optString("photo_reference") : "");
+                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_TYPE, placeType);
+                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_LAT, location.optDouble("lat"));
+                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_LNG, location.optDouble("lng"));
+                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_VICINITY, place.optString("vicinity"));
+                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_RATING, place.optString("rating"));
+
+                Uri uri = getContentResolver().insert(PlaceContract.PlaceEntry.CONTENT_URI, placeInfo);
                 Log.e("getContentResolver", "insert" + uri.toString());
-
             }
         } catch (JSONException e) {
             e.printStackTrace();

@@ -3,13 +3,16 @@ package com.astuter.capstone.gui;
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -17,6 +20,9 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -25,6 +31,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
 import android.widget.TextView;
@@ -38,6 +45,8 @@ import com.astuter.capstone.config.PrefsManager;
 import com.astuter.capstone.provider.PlaceContract;
 import com.astuter.capstone.remote.NearbyPlaceResultReceiver;
 import com.astuter.capstone.remote.NearbyPlaceService;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.BitmapImageViewTarget;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -102,24 +111,28 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
             SpinnerAdapter spinnerAdapter = ArrayAdapter.createFromResource(getApplicationContext(),
                     R.array.nearby_places,
                     R.layout.spinner_item_layout);
-            Spinner spinner = new Spinner(getSupportActionBar().getThemedContext());
+            final Spinner spinner = new Spinner(getSupportActionBar().getThemedContext());
             spinner.setAdapter(spinnerAdapter);
-            spinner.setSelection(Arrays.asList(PLACE_TYPE).indexOf(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType()));
+            spinner.setSelection(Arrays.asList(PLACE_TYPE).indexOf(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType()), false);
             toolbar.addView(spinner, 0);
 
-            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            // Hack to keep onItemSelected from firing off on a newly instantiated Spinner : @check here: http://stackoverflow.com/q/2562248/2571277
+            spinner.post(new Runnable() {
                 @Override
-                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    PrefsManager.instance(getApplicationContext()).setCurrentPlaceType(PLACE_TYPE[position]);
+                public void run() {
+                    spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                            PrefsManager.instance(getApplicationContext()).setCurrentPlaceType(PLACE_TYPE[position]);
 
-                    // @Todo: get Nearby places as per user choice here
-                    Log.e("navigationSpinner", "you selected:" + PLACE_TYPE[position]);
-                    fetchNearbyPlaces();
-                }
+                            Log.e("navigationSpinner", "you selected:" + PLACE_TYPE[position]);
+                            fetchNearbyPlaces();
+                        }
 
-                @Override
-                public void onNothingSelected(AdapterView<?> parent) {
-
+                        @Override
+                        public void onNothingSelected(AdapterView<?> parent) {
+                        }
+                    });
                 }
             });
         }
@@ -138,8 +151,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
             }
         });
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     PERMISSION_ACCESS_FINE_LOCATION);
         }
@@ -162,7 +174,6 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
             // activity should be in two-pane mode.
             mTwoPane = true;
         }
-
     }
 
     @Override
@@ -174,6 +185,26 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
     @Override
     public void onResume() {
         super.onResume();
+
+        if (!Config.isLocationEnabled(PlaceListActivity.this)) {
+            AlertDialog.Builder dialog = new AlertDialog.Builder(PlaceListActivity.this);
+            dialog.setMessage(getResources().getString(R.string.no_location_msg));
+            dialog.setPositiveButton(getResources().getString(R.string.open_location_settings), new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+                    Intent myIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivity(myIntent);
+                    //get gps
+                }
+            });
+            dialog.setNegativeButton(getString(R.string.cancel), new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+                }
+            });
+            dialog.show();
+        }
+
         if (mGoogleApiClient.isConnected() &&
                 ContextCompat.checkSelfPermission(PlaceListActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, PlaceListActivity.this);
@@ -190,10 +221,32 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_ACCESS_FINE_LOCATION:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // All good!
+                } else {
+                    Toast.makeText(this, "Need Location permission to get Nearby Places!", Toast.LENGTH_SHORT).show();
+                }
+                break;
+        }
+    }
+
+    /************************************************************/
+    /*      Methods for CursorLoader with callback              */
+
+    /************************************************************/
+
+    @Override
     public Loader<Cursor> onCreateLoader(int arg0, Bundle arg1) {
         Uri CONTENT_URI = PlaceContract.PlaceEntry.CONTENT_URI;
-
-        return new CursorLoader(PlaceListActivity.this, CONTENT_URI, null, null, null, null);
+        return new CursorLoader(PlaceListActivity.this,
+                CONTENT_URI,
+                null,
+                PlaceContract.PlaceEntry.COLUMN_TYPE + " = ? ",
+                new String[]{PrefsManager.instance(getApplicationContext()).getCurrentPlaceType()},
+                null);
     }
 
     @Override
@@ -210,8 +263,13 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
         // If the Cursor is being placed in a CursorAdapter, you should use the
         // swapCursor(null) method to remove any references it has to the
         // Loader's data.
-//        mPlaceListAdapter.swapCursor(null);
+        mPlaceListAdapter.swapCursor(null);
     }
+
+    /************************************************************/
+    /*     Methods for GoogleApiClient with callback            */
+
+    /************************************************************/
 
     private void setUpGoogleApiClient() {
         // Create an instance of GoogleAPIClient.
@@ -222,13 +280,6 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
                     .addApi(LocationServices.API)
                     .build();
         }
-    }
-
-    private void createLocationRequest() {
-        mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(5000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
     }
 
     @Override
@@ -250,12 +301,22 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
 
     @Override
     public void onConnectionSuspended(int i) {
-
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+    }
 
+    /************************************************************/
+    /*     Methods for LocationRequest with callback            */
+
+    /************************************************************/
+
+    private void createLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(10000);
+        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
     }
 
     @Override
@@ -268,21 +329,31 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
         }
     }
 
+    /************************************************************/
+    /*   Methods for Fetching Nearby Places with callback       */
+
+    /************************************************************/
+
     private void startNearbyPlaceService() {
-        /* Starting Download Service */
-        mNearbyPlaceResultReceiver = new NearbyPlaceResultReceiver(new Handler());
-        mNearbyPlaceResultReceiver.setReceiver(PlaceListActivity.this);
-        Intent intent = new Intent(Intent.ACTION_SYNC, null, this, NearbyPlaceService.class);
 
-        /* Send optional extras to Download IntentService */
-        intent.putExtra(Config.KEY_PLACE_RESULT_RECEIVER, mNearbyPlaceResultReceiver);
-        intent.putExtra(Config.KEY_PLACE_TYPE, PrefsManager.instance(getApplicationContext()).getCurrentPlaceType());
-        intent.putExtra(Config.KEY_CURRENT_LOCATION, PrefsManager.instance(getApplicationContext()).getCurrentLocation());
+        if (Config.isNetConnected(PlaceListActivity.this)) {
+            /* Starting Download Service */
+            mNearbyPlaceResultReceiver = new NearbyPlaceResultReceiver(new Handler());
+            mNearbyPlaceResultReceiver.setReceiver(PlaceListActivity.this);
+            Intent intent = new Intent(Intent.ACTION_SYNC, null, this, NearbyPlaceService.class);
 
-        startService(intent);
+            /* Send optional extras to Download IntentService */
+            intent.putExtra(Config.KEY_PLACE_RESULT_RECEIVER, mNearbyPlaceResultReceiver);
+            intent.putExtra(Config.KEY_PLACE_TYPE, PrefsManager.instance(getApplicationContext()).getCurrentPlaceType());
+            intent.putExtra(Config.KEY_CURRENT_LOCATION, PrefsManager.instance(getApplicationContext()).getCurrentLocation());
+
+            startService(intent);
+        } else {
+            Toast.makeText(this, getResources().getString(R.string.no_internet_msg), Toast.LENGTH_SHORT).show();
+        }
     }
 
-    private void fetchNearbyPlaces() {
+    private int fetchNearbyPlaces() {
         // Get PlaceLocationMap for fetching nearBy Places
         HashMap<String, Location> defaultMap = PrefsManager.instance(getApplicationContext()).getMapPlaceLocation();
         if (defaultMap != null) {
@@ -294,25 +365,35 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
         String placeType = PrefsManager.instance(getApplicationContext()).getCurrentPlaceType();
 
         if (placeLocationMap.size() == 0 || !placeLocationMap.keySet().contains(placeType)) {
-            // this shoudl be first time user has launched the app, fetch places using default configurations
+            // this should be first time user has launched the app, fetch places using default configurations
             startNearbyPlaceService();
 
             placeLocationMap.put(placeType, PrefsManager.instance(getApplicationContext()).getCurrentLocation());
             PrefsManager.instance(getApplicationContext()).setMapPlaceLocation(placeLocationMap);
 
+            return 1;
         } else if (placeLocationMap.size() > 0 && placeLocationMap.keySet().contains(placeType)) {
 
             Location locations = placeLocationMap.get(placeType);
 
             if (PrefsManager.instance(getApplicationContext()).getCurrentLocation().distanceTo(locations) == 1000) {
                 // First delete all places of this type
+                getContentResolver().delete(PlaceContract.PlaceEntry.CONTENT_URI,
+                        PlaceContract.PlaceEntry.COLUMN_TYPE + " = ? ",
+                        new String[]{PrefsManager.instance(getApplicationContext()).getCurrentPlaceType()});
+
                 // Then fetch new one for new location
                 startNearbyPlaceService();
 
                 placeLocationMap.put(placeType, PrefsManager.instance(getApplicationContext()).getCurrentLocation());
                 PrefsManager.instance(getApplicationContext()).setMapPlaceLocation(placeLocationMap);
+            } else {
+                // We still have Nearby Places in our DB, fetch them
+                getSupportLoaderManager().restartLoader(PLACE_LOADER, null, PlaceListActivity.this);
             }
+            return 1;
         }
+        return 0;
     }
 
     @Override
@@ -323,33 +404,21 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
                 break;
             case NearbyPlaceService.STATUS_FINISHED:
                 /* Hide progress & extract result from bundle */
-                if (progress.isShowing()) {
+                if (progress != null && progress.isShowing()) {
                     progress.dismiss();
                 }
-//                mPlaceListAdapter = new PlaceListAdapter(PlaceListActivity.this);
-                mPlaceListAdapter.notifyDataSetChanged();
+
+                // Update cursor with newly fetched Places
+                getSupportLoaderManager().restartLoader(PLACE_LOADER, null, PlaceListActivity.this);
                 break;
             case NearbyPlaceService.STATUS_ERROR:
                 /* Handle the error */
-                if (progress.isShowing()) {
+                if (progress != null && progress.isShowing()) {
                     progress.dismiss();
                 }
 
                 String error = resultData.getString(Intent.EXTRA_TEXT);
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
-                break;
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        switch (requestCode) {
-            case PERMISSION_ACCESS_FINE_LOCATION:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // All good!
-                } else {
-                    Toast.makeText(this, "Need Location permission to get Nearby Places!", Toast.LENGTH_SHORT).show();
-                }
+                Toast.makeText(this, getResources().getString(R.string.error_fetch_nearby_place), Toast.LENGTH_LONG).show();
                 break;
         }
     }
@@ -372,8 +441,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
         }
 
         /**
-         * Moves the Cursor of the CursorAdapter to the appropriate position and binds the view for
-         * that item.
+         * Moves the Cursor of the CursorAdapter to the appropriate position and binds the view for that item.
          */
         @Override
         public void onBindViewHolder(PlaceViewHolder holder, int position) {
@@ -395,15 +463,29 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
          */
         public class PlaceViewHolder extends RecyclerViewCursorViewHolder {
             public final TextView name;
+            public final ImageView icon;
 
             public PlaceViewHolder(View view) {
                 super(view);
                 name = (TextView) view.findViewById(R.id.name);
+                icon = (ImageView) view.findViewById(R.id.icon);
             }
 
             @Override
             public void bindCursor(Cursor cursor) {
                 name.setText(cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_NAME)));
+                Glide.with(icon.getContext())
+                        .load(Config.getPlacePhotoUrl("80", cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_PHOTO)), Config.API_KEY))
+                        .asBitmap().centerCrop().into(new BitmapImageViewTarget(icon) {
+                    @Override
+                    protected void setResource(Bitmap resource) {
+                        RoundedBitmapDrawable circularBitmapDrawable = RoundedBitmapDrawableFactory.create(getResources(), resource);
+                        circularBitmapDrawable.setCircular(true);
+                        icon.setImageDrawable(circularBitmapDrawable);
+                    }
+                });
+
+//                Log.e("Photo" , Config.getPlacePhotoUrl("80", cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_PHOTO)), Config.API_KEY));
             }
         }
     }
