@@ -10,6 +10,7 @@
         android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
         android:background="@drawable/ic_place_placeholder"
+        android:transitionName="photo"
         android:contentDescription="@string/app_name" />
 
     <TextView

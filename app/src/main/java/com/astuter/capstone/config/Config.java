@@ -7,6 +7,8 @@ import android.os.Build;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
+import android.view.View;
+import android.view.animation.AlphaAnimation;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -27,7 +29,8 @@ public class Config {
     public static final String KEY_CURRENT_LOCATION = "KEY_CURRENT_LOCATION";
     public static final String KEY_PLACE_TYPE = "KEY_PLACE_TYPE";
     public static final String KEY_PLACE_RESULT_RECEIVER = "KEY_PLACE_RESULT_RECEIVER";
-
+    public static final String KEY_IS_TWO_PANE = "KEY_IS_TWO_PANE";
+    public static final String KEY_PLACE_TITLE = "KEY_PLACE_TITLE";
 
     public static String getPlaceListUrl(Location location, String type, String key) {
         return new Uri.Builder()
@@ -116,6 +119,16 @@ public class Config {
         return px;
     }
 
+    public static void startAlphaAnimation(View v, long duration, int visibility) {
+        AlphaAnimation alphaAnimation = (visibility == View.VISIBLE)
+                ? new AlphaAnimation(0f, 1f)
+                : new AlphaAnimation(1f, 0f);
+
+        alphaAnimation.setDuration(duration);
+        alphaAnimation.setFillAfter(true);
+        v.startAnimation(alphaAnimation);
+    }
+
     /*
     * Covert convert InputStream to String
     * @param: inputStream
@@ -129,10 +142,9 @@ public class Config {
             result += line;
         }
             /* Close Stream */
-        if (null != inputStream) {
+        if (inputStream != null) {
             inputStream.close();
         }
         return result;
     }
-
 }

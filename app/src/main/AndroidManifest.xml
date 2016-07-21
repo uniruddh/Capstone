@@ -43,7 +43,13 @@
 
         <activity
             android:name=".gui.MapActivity"
-            android:label="@string/title_activity_map" />
+            android:label="@string/title_activity_map"
+            android:parentActivityName=".gui.PlaceListActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".gui.PlaceListActivity" />
+        </activity>
 
         <service
             android:name=".remote.NearbyPlaceService"

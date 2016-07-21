@@ -1,15 +1,15 @@
 package com.astuter.capstone.gui;
 
 import android.Manifest;
+import android.app.ActivityOptions;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Bitmap;
 import android.location.Location;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
@@ -20,33 +20,26 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.androidessence.recyclerviewcursoradapter.RecyclerViewCursorAdapter;
-import com.androidessence.recyclerviewcursoradapter.RecyclerViewCursorViewHolder;
 import com.astuter.capstone.R;
 import com.astuter.capstone.config.Config;
+import com.astuter.capstone.config.ItemClickSupport;
+import com.astuter.capstone.config.PlaceListAdapter;
 import com.astuter.capstone.config.PrefsManager;
 import com.astuter.capstone.provider.PlaceContract;
 import com.astuter.capstone.remote.NearbyPlaceResultReceiver;
 import com.astuter.capstone.remote.NearbyPlaceService;
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.target.BitmapImageViewTarget;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -55,8 +48,6 @@ import com.google.android.gms.location.LocationServices;
 
 import java.util.Arrays;
 import java.util.HashMap;
-
-;
 
 /**
  * An activity representing a list of Places. This activity
@@ -97,6 +88,14 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
 
         PLACE_TYPE = getResources().getStringArray(R.array.nearby_places_key);
 
+        if (findViewById(R.id.place_detail_container) != null) {
+            // The detail container view will be present only in the
+            // large-screen layouts (res/values-w900dp).
+            // If this view is present, then the
+            // activity should be in two-pane mode.
+            mTwoPane = true;
+        }
+
         progress = new ProgressDialog(this);
         progress.setTitle("Loading");
         progress.setMessage("Please Wait ...");
@@ -105,37 +104,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
         setSupportActionBar(toolbar);
 
         // Add Spinner programmatically to toolbar
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayShowTitleEnabled(false);
-
-            SpinnerAdapter spinnerAdapter = ArrayAdapter.createFromResource(getApplicationContext(),
-                    R.array.nearby_places,
-                    R.layout.spinner_item_layout);
-            final Spinner spinner = new Spinner(getSupportActionBar().getThemedContext());
-            spinner.setAdapter(spinnerAdapter);
-            spinner.setSelection(Arrays.asList(PLACE_TYPE).indexOf(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType()), false);
-            toolbar.addView(spinner, 0);
-
-            // Hack to keep onItemSelected from firing off on a newly instantiated Spinner : @check here: http://stackoverflow.com/q/2562248/2571277
-            spinner.post(new Runnable() {
-                @Override
-                public void run() {
-                    spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                        @Override
-                        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                            PrefsManager.instance(getApplicationContext()).setCurrentPlaceType(PLACE_TYPE[position]);
-
-                            Log.e("navigationSpinner", "you selected:" + PLACE_TYPE[position]);
-                            fetchNearbyPlaces();
-                        }
-
-                        @Override
-                        public void onNothingSelected(AdapterView<?> parent) {
-                        }
-                    });
-                }
-            });
-        }
+        setupSpinner(toolbar);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -145,6 +114,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
                 // Pass the Place data and current location to show on map
                 Bundle bundle = new Bundle();
                 bundle.putParcelable(Config.KEY_CURRENT_LOCATION, PrefsManager.instance(getApplicationContext()).getCurrentLocation());
+                bundle.putString(Config.KEY_PLACE_TITLE, PLACE_TYPE[Arrays.asList(PLACE_TYPE).indexOf(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType())]);
                 Intent intent = new Intent(PlaceListActivity.this, MapActivity.class);
                 intent.putExtras(bundle);
                 startActivity(intent);
@@ -156,24 +126,17 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
                     PERMISSION_ACCESS_FINE_LOCATION);
         }
 
+        // Setup GoogleApiClient for getting user Location
         setUpGoogleApiClient();
+
+        // create Location Request to get periodic Location updates
         createLocationRequest();
 
-        mRecyclerView = (RecyclerView) findViewById(R.id.place_list);
-        mRecyclerView.setHasFixedSize(true);
-        mPlaceListAdapter = new PlaceListAdapter(PlaceListActivity.this);
-        mRecyclerView.setAdapter(mPlaceListAdapter);
+        // setup RecyclerView
+        setupRecyclerView();
 
         // User loader to fetch data from SQLite
         getSupportLoaderManager().initLoader(PLACE_LOADER, null, PlaceListActivity.this);
-
-        if (findViewById(R.id.place_detail_container) != null) {
-            // The detail container view will be present only in the
-            // large-screen layouts (res/values-w900dp).
-            // If this view is present, then the
-            // activity should be in two-pane mode.
-            mTwoPane = true;
-        }
     }
 
     @Override
@@ -185,16 +148,14 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
     @Override
     public void onResume() {
         super.onResume();
-
         if (!Config.isLocationEnabled(PlaceListActivity.this)) {
             AlertDialog.Builder dialog = new AlertDialog.Builder(PlaceListActivity.this);
             dialog.setMessage(getResources().getString(R.string.no_location_msg));
             dialog.setPositiveButton(getResources().getString(R.string.open_location_settings), new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface paramDialogInterface, int paramInt) {
-                    Intent myIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                    startActivity(myIntent);
-                    //get gps
+                    // Open Location settings on device
+                    startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
                 }
             });
             dialog.setNegativeButton(getString(R.string.cancel), new DialogInterface.OnClickListener() {
@@ -227,10 +188,78 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // All good!
                 } else {
-                    Toast.makeText(this, "Need Location permission to get Nearby Places!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getResources().getString(R.string.required_location_permission), Toast.LENGTH_SHORT).show();
                 }
                 break;
         }
+    }
+
+    private void setupSpinner(Toolbar toolbar) {
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+
+            SpinnerAdapter spinnerAdapter = ArrayAdapter.createFromResource(getApplicationContext(),
+                    R.array.nearby_places,
+                    R.layout.spinner_item_layout);
+            final Spinner spinner = new Spinner(getSupportActionBar().getThemedContext());
+            spinner.setAdapter(spinnerAdapter);
+            spinner.setSelection(Arrays.asList(PLACE_TYPE).indexOf(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType()), false);
+            toolbar.addView(spinner, 0);
+
+            // Hack to keep onItemSelected from firing off on a newly instantiated Spinner : @check here: http://stackoverflow.com/q/2562248/2571277
+            spinner.post(new Runnable() {
+                @Override
+                public void run() {
+                    spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                            PrefsManager.instance(getApplicationContext()).setCurrentPlaceType(PLACE_TYPE[position]);
+
+                            Log.e("navigationSpinner", "you selected:" + PLACE_TYPE[position]);
+                            fetchNearbyPlaces();
+                        }
+
+                        @Override
+                        public void onNothingSelected(AdapterView<?> parent) {
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    private void setupRecyclerView() {
+        mRecyclerView = (RecyclerView) findViewById(R.id.place_list);
+        mRecyclerView.setHasFixedSize(true);
+        mPlaceListAdapter = new PlaceListAdapter(PlaceListActivity.this);
+        mRecyclerView.setAdapter(mPlaceListAdapter);
+
+        ItemClickSupport.addTo(mRecyclerView).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
+            @Override
+            public void onItemClicked(RecyclerView recyclerView, int position, View v) {
+                if (mTwoPane) {
+                    Bundle arguments = new Bundle();
+//                    arguments.putParcelable(Config.MOVIE_EXTRA, movieList.get(position));
+                    arguments.putBoolean(Config.KEY_IS_TWO_PANE, mTwoPane);
+                    PlaceDetailFragment fragment = new PlaceDetailFragment();
+                    fragment.setArguments(arguments);
+                    getSupportFragmentManager().beginTransaction().replace(R.id.place_detail_container, fragment).commit();
+                } else {
+                    Intent intent = new Intent(PlaceListActivity.this, PlaceDetailActivity.class);
+//                    intent.putExtra(Config.MOVIE_EXTRA, movieList.get(position));
+                    intent.putExtra(Config.KEY_IS_TWO_PANE, mTwoPane);
+
+                    // Check if we're running on Android 5.0 or higher
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        PlaceListAdapter.PlaceViewHolder holder = (PlaceListAdapter.PlaceViewHolder) recyclerView.getChildViewHolder(v);
+                        ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(PlaceListActivity.this, holder.icon, "photo");
+                        startActivity(intent, options.toBundle());
+                    } else {
+                        startActivity(intent);
+                    }
+                }
+            }
+        });
     }
 
     /************************************************************/
@@ -376,7 +405,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
 
             Location locations = placeLocationMap.get(placeType);
 
-            if (PrefsManager.instance(getApplicationContext()).getCurrentLocation().distanceTo(locations) == 1000) {
+            if (PrefsManager.instance(getApplicationContext()).getCurrentLocation().distanceTo(locations) > 2500) {
                 // First delete all places of this type
                 getContentResolver().delete(PlaceContract.PlaceEntry.CONTENT_URI,
                         PlaceContract.PlaceEntry.COLUMN_TYPE + " = ? ",
@@ -416,77 +445,10 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
                 if (progress != null && progress.isShowing()) {
                     progress.dismiss();
                 }
+                Log.e("STATUS_ERROR", resultData.getString(Intent.EXTRA_TEXT));
 
-                String error = resultData.getString(Intent.EXTRA_TEXT);
-                Toast.makeText(this, getResources().getString(R.string.error_fetch_nearby_place), Toast.LENGTH_LONG).show();
+                Toast.makeText(PlaceListActivity.this, getResources().getString(R.string.error_fetch_nearby_place), Toast.LENGTH_LONG).show();
                 break;
-        }
-    }
-
-
-    public class PlaceListAdapter extends RecyclerViewCursorAdapter<PlaceListAdapter.PlaceViewHolder> {
-
-        public PlaceListAdapter(Context context) {
-            super(context);
-            setHasStableIds(true);
-            setupCursorAdapter(null, 0, R.layout.place_list_content, false);
-        }
-
-        /**
-         * Returns the ViewHolder to use for this adapter.
-         */
-        @Override
-        public PlaceViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            return new PlaceViewHolder(mCursorAdapter.newView(mContext, mCursorAdapter.getCursor(), parent));
-        }
-
-        /**
-         * Moves the Cursor of the CursorAdapter to the appropriate position and binds the view for that item.
-         */
-        @Override
-        public void onBindViewHolder(PlaceViewHolder holder, int position) {
-            // Move cursor to this position
-            mCursorAdapter.getCursor().moveToPosition(position);
-            // Set the ViewHolder
-            setViewHolder(holder);
-            // Bind this view
-            mCursorAdapter.bindView(null, mContext, mCursorAdapter.getCursor());
-        }
-
-        @Override
-        public int getItemCount() {
-            return mCursorAdapter.getCount();
-        }
-
-        /**
-         * ViewHolder used to display a Place.
-         */
-        public class PlaceViewHolder extends RecyclerViewCursorViewHolder {
-            public final TextView name;
-            public final ImageView icon;
-
-            public PlaceViewHolder(View view) {
-                super(view);
-                name = (TextView) view.findViewById(R.id.name);
-                icon = (ImageView) view.findViewById(R.id.icon);
-            }
-
-            @Override
-            public void bindCursor(Cursor cursor) {
-                name.setText(cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_NAME)));
-                Glide.with(icon.getContext())
-                        .load(Config.getPlacePhotoUrl("80", cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_PHOTO)), Config.API_KEY))
-                        .asBitmap().centerCrop().into(new BitmapImageViewTarget(icon) {
-                    @Override
-                    protected void setResource(Bitmap resource) {
-                        RoundedBitmapDrawable circularBitmapDrawable = RoundedBitmapDrawableFactory.create(getResources(), resource);
-                        circularBitmapDrawable.setCircular(true);
-                        icon.setImageDrawable(circularBitmapDrawable);
-                    }
-                });
-
-//                Log.e("Photo" , Config.getPlacePhotoUrl("80", cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_PHOTO)), Config.API_KEY));
-            }
         }
     }
 }

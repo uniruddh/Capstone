@@ -9,6 +9,7 @@
     <string name="no_location_msg">Please enable Location settings</string>
     <string name="no_internet_msg">No Internet Connection, Can not fetch new Places</string>
     <string name="error_fetch_nearby_place">Opps, Error while fetching new Places!</string>
+    <string name="required_location_permission">Need Location permission to get Nearby Places!</string>
 
     <string name="google_api_android_key" translatable="false">AIzaSyCRHfwQPTVvGfGtGIE46N5kvhUjYS7PaKY</string>
     <string name="google_api_server_key" translatable="false">AIzaSyAHWzZVpYn4shTmyKHnEuX6_78VLN-TbW8</string>
