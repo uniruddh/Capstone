@@ -3,7 +3,6 @@ package com.astuter.capstone.remote;
 import android.app.IntentService;
 import android.content.ContentValues;
 import android.content.Intent;
-import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ResultReceiver;
@@ -26,36 +25,36 @@ import java.net.URL;
 /**
  * Created by astuter on 16/07/16.
  */
-public class NearbyPlaceService extends IntentService {
+public class ReviewListService extends IntentService {
 
     public static final int STATUS_RUNNING = 0;
     public static final int STATUS_FINISHED = 1;
     public static final int STATUS_ERROR = 2;
 
-    private static final String TAG = "NearbyPlaceService";
-    private String placeType;
+    private String placeId;
 
-    public NearbyPlaceService() {
-        super(NearbyPlaceService.class.getName());
+    private static final String TAG = "ReviewListService";
+
+    public ReviewListService() {
+        super(ReviewListService.class.getName());
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
         Log.e(TAG, "Service Started!");
 
-        ResultReceiver receiver = intent.getParcelableExtra(Config.KEY_PLACE_RESULT_RECEIVER);
-        Location location = intent.getParcelableExtra(Config.KEY_CURRENT_LOCATION);
-        placeType = intent.getStringExtra(Config.KEY_PLACE_TYPE);
+        ResultReceiver receiver = intent.getParcelableExtra(Config.KEY_RESULT_RECEIVER);
+        placeId = intent.getStringExtra(Config.KEY_PLACE_ID);
 
-        if (!TextUtils.isEmpty(placeType)) {
+        if (!TextUtils.isEmpty(placeId)) {
             Bundle bundle = new Bundle();
             /* Update UI: Download Service is Running */
             receiver.send(STATUS_RUNNING, Bundle.EMPTY);
             try {
-                String url = Config.getPlaceListUrl(location, placeType, Config.API_KEY);
+                String url = Config.getPlaceDetailUrl(placeId, Config.API_KEY);
                 Log.e(TAG, "URL: " + url);
 
-                int statusCode = getNearbyPlaces(url);
+                int statusCode = getPlaceDetail(url);
 
                 /* Sending result back to activity */
                 if (statusCode == 200) {
@@ -71,7 +70,7 @@ public class NearbyPlaceService extends IntentService {
         this.stopSelf();
     }
 
-    private int getNearbyPlaces(String requestUrl) throws IOException, DownloadException {
+    private int getPlaceDetail(String requestUrl) throws IOException, DownloadException {
         InputStream inputStream = null;
         HttpURLConnection urlConnection = null;
 
@@ -103,25 +102,21 @@ public class NearbyPlaceService extends IntentService {
     private void parseResult(String result) {
         try {
             JSONObject response = new JSONObject(result);
-            JSONArray results = response.optJSONArray("results");
+            JSONArray reviews = response.optJSONObject("result").optJSONArray("reviews");
 
-            for (int i = 0; i < results.length(); i++) {
-                JSONObject place = results.getJSONObject(i);
+            for (int i = 0; i < reviews.length(); i++) {
+                JSONObject review = reviews.getJSONObject(i);
 
-                JSONObject location = place.optJSONObject("geometry").optJSONObject("location");
-                JSONArray photo = place.optJSONArray("photos");
+                ContentValues reviewValue = new ContentValues();
 
-                ContentValues placeInfo = new ContentValues();
-                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_NAME, place.optString("name"));
-                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_PLACE_ID, place.optString("place_id"));
-                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_PHOTO, photo != null ? photo.getJSONObject(0).optString("photo_reference") : "");
-                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_TYPE, placeType);
-                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_LAT, location.optDouble("lat"));
-                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_LNG, location.optDouble("lng"));
-                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_VICINITY, place.optString("vicinity"));
-                placeInfo.put(PlaceContract.PlaceEntry.COLUMN_RATING, place.optString("rating"));
+                reviewValue.put(PlaceContract.ReviewEntry.COLUMN_PLACE_ID, placeId);
+                reviewValue.put(PlaceContract.ReviewEntry.COLUMN_NAME, review.optString("author_name"));
+                reviewValue.put(PlaceContract.ReviewEntry.COLUMN_PHOTO, review.optString("profile_photo_url"));
+                reviewValue.put(PlaceContract.ReviewEntry.COLUMN_TEXT, review.optString("text"));
+                reviewValue.put(PlaceContract.ReviewEntry.COLUMN_RATING, review.optString("rating"));
+                reviewValue.put(PlaceContract.ReviewEntry.COLUMN_TIME, review.optLong("time"));
 
-                Uri uri = getContentResolver().insert(PlaceContract.PlaceEntry.CONTENT_URI, placeInfo);
+                Uri uri = getContentResolver().insert(PlaceContract.ReviewEntry.CONTENT_URI, reviewValue);
                 Log.e("getContentResolver", "insert" + uri.toString());
             }
         } catch (JSONException e) {

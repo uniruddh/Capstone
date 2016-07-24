@@ -49,6 +49,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_map);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle("");
         setSupportActionBar(toolbar);
         if(getSupportActionBar() != null){
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -56,9 +57,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            String title = extras.getString(Config.KEY_PLACE_TITLE);
-            toolbar.setTitle(title);
-
+            toolbar.setTitle(extras.getString(Config.KEY_PLACE_TITLE));
+            // id: 750 248 329
+            // pass: s1dw52
             mLocation = extras.getParcelable(Config.KEY_CURRENT_LOCATION);
         }
 

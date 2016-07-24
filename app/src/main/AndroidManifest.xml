@@ -43,7 +43,6 @@
 
         <activity
             android:name=".gui.MapActivity"
-            android:label="@string/title_activity_map"
             android:parentActivityName=".gui.PlaceListActivity"
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
@@ -52,7 +51,11 @@
         </activity>
 
         <service
-            android:name=".remote.NearbyPlaceService"
+            android:name=".remote.PlaceListService"
+            android:exported="false" />
+
+        <service
+            android:name=".remote.ReviewListService"
             android:exported="false" />
 
         <provider
@@ -63,6 +66,16 @@
             android:label="NearbyPlaceProvider"
             android:readPermission="com.astuter.capstone.READ"
             android:writePermission="com.astuter.capstone.WRITE" />
+
+        <receiver android:name=".widget.PlaceWidgetProvider">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/place_widget" />
+        </receiver>
+
 
     </application>
 

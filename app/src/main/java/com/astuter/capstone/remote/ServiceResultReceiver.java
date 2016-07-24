@@ -10,10 +10,10 @@ import android.os.ResultReceiver;
  */
 
 @SuppressLint("ParcelCreator")
-public class NearbyPlaceResultReceiver extends ResultReceiver {
+public class ServiceResultReceiver extends ResultReceiver {
     private Receiver mReceiver;
 
-    public NearbyPlaceResultReceiver(Handler handler) {
+    public ServiceResultReceiver(Handler handler) {
         super(handler);
     }
 

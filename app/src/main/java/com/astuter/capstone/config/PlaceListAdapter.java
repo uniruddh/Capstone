@@ -28,7 +28,7 @@ public class PlaceListAdapter extends RecyclerViewCursorAdapter<PlaceListAdapter
         super(context);
         mContext = context;
         setHasStableIds(true);
-        setupCursorAdapter(null, 0, R.layout.place_list_content, false);
+        setupCursorAdapter(null, 0, R.layout.place_list_item, false);
     }
 
     /**
@@ -63,16 +63,26 @@ public class PlaceListAdapter extends RecyclerViewCursorAdapter<PlaceListAdapter
     public class PlaceViewHolder extends RecyclerViewCursorViewHolder {
         public final TextView name;
         public final ImageView icon;
+        public final TextView id;
+        public final TextView photo;
+        public final TextView vicinity;
 
         public PlaceViewHolder(View view) {
             super(view);
             name = (TextView) view.findViewById(R.id.name);
             icon = (ImageView) view.findViewById(R.id.icon);
+            id = (TextView) view.findViewById(R.id.place_id);
+            photo = (TextView) view.findViewById(R.id.place_photo);
+            vicinity = (TextView) view.findViewById(R.id.place_vicinity);
         }
 
         @Override
         public void bindCursor(Cursor cursor) {
             name.setText(cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_NAME)));
+            id.setText(cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_PLACE_ID)));
+            photo.setText(cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_PHOTO)));
+            vicinity.setText(cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_VICINITY)));
+
             Glide.with(icon.getContext())
                     .load(Config.getPlacePhotoUrl("80", cursor.getString(cursor.getColumnIndex(PlaceContract.PlaceEntry.COLUMN_PHOTO)), Config.API_KEY))
                     .asBitmap().centerCrop().into(new BitmapImageViewTarget(icon) {

@@ -10,8 +10,8 @@
         android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
         android:background="@drawable/ic_place_placeholder"
-        android:transitionName="photo"
-        android:contentDescription="@string/app_name" />
+        android:contentDescription="@string/app_name"
+        android:transitionName="photo" />
 
     <TextView
         android:id="@+id/name"
@@ -20,6 +20,7 @@
         android:layout_centerVertical="true"
         android:layout_marginLeft="@dimen/text_margin"
         android:layout_toRightOf="@id/icon"
+        android:maxLines="2"
         android:textAppearance="?attr/textAppearanceListItem" />
 
     <View
@@ -28,5 +29,23 @@
         android:layout_alignParentBottom="true"
         android:layout_marginLeft="@dimen/text_margin"
         android:layout_toRightOf="@id/icon"
-        android:background="@android:color/darker_gray" />
+        android:background="@color/gray_light" />
+
+    <TextView
+        android:id="@+id/place_id"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_centerVertical="true" />
+
+    <TextView
+        android:id="@+id/place_vicinity"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_centerVertical="true" />
+
+    <TextView
+        android:id="@+id/place_photo"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_centerVertical="true" />
 </RelativeLayout>

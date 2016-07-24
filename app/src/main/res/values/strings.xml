@@ -2,6 +2,7 @@
     <string name="app_name" translatable="false">Capstone</string>
     <string name="title_place_detail">Place Detail</string>
     <string name="title_activity_map">Map</string>
+    <string name="widget_title">Nearby Places</string>
 
     <string name="open_location_settings">Open Location Setting</string>
     <string name="cancel">Cancel</string>

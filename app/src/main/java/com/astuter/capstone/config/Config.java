@@ -28,7 +28,11 @@ public class Config {
 
     public static final String KEY_CURRENT_LOCATION = "KEY_CURRENT_LOCATION";
     public static final String KEY_PLACE_TYPE = "KEY_PLACE_TYPE";
-    public static final String KEY_PLACE_RESULT_RECEIVER = "KEY_PLACE_RESULT_RECEIVER";
+    public static final String KEY_PLACE_PHOTO = "KEY_PLACE_PHOTO";
+    public static final String KEY_PLACE_ID = "KEY_PLACE_ID";
+    public static final String KEY_PLACE_NAME = "KEY_PLACE_NAME";
+    public static final String KEY_PLACE_VICINITY = "KEY_PLACE_VICINITY";
+    public static final String KEY_RESULT_RECEIVER = "KEY_RESULT_RECEIVER";
     public static final String KEY_IS_TWO_PANE = "KEY_IS_TWO_PANE";
     public static final String KEY_PLACE_TITLE = "KEY_PLACE_TITLE";
 

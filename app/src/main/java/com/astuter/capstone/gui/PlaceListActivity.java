@@ -38,8 +38,8 @@ import com.astuter.capstone.config.ItemClickSupport;
 import com.astuter.capstone.config.PlaceListAdapter;
 import com.astuter.capstone.config.PrefsManager;
 import com.astuter.capstone.provider.PlaceContract;
-import com.astuter.capstone.remote.NearbyPlaceResultReceiver;
-import com.astuter.capstone.remote.NearbyPlaceService;
+import com.astuter.capstone.remote.ServiceResultReceiver;
+import com.astuter.capstone.remote.PlaceListService;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -58,7 +58,7 @@ import java.util.HashMap;
  * item details side-by-side using two vertical panes.
  */
 public class PlaceListActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener, LocationListener, NearbyPlaceResultReceiver.Receiver,
+        GoogleApiClient.OnConnectionFailedListener, LocationListener, ServiceResultReceiver.Receiver,
         LoaderManager.LoaderCallbacks<Cursor> {
 
     /**
@@ -69,11 +69,12 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
 
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
-    private NearbyPlaceResultReceiver mNearbyPlaceResultReceiver;
+    private ServiceResultReceiver mServiceResultReceiver;
     private RecyclerView mRecyclerView;
     private PlaceListAdapter mPlaceListAdapter;
     private ProgressDialog progress;
 
+    private Spinner mSpinner;
     private HashMap<String, Location> placeLocationMap;
 
     private String[] PLACE_TYPE;
@@ -114,7 +115,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
                 // Pass the Place data and current location to show on map
                 Bundle bundle = new Bundle();
                 bundle.putParcelable(Config.KEY_CURRENT_LOCATION, PrefsManager.instance(getApplicationContext()).getCurrentLocation());
-                bundle.putString(Config.KEY_PLACE_TITLE, PLACE_TYPE[Arrays.asList(PLACE_TYPE).indexOf(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType())]);
+                bundle.putString(Config.KEY_PLACE_TITLE, mSpinner.getSelectedItem().toString());
                 Intent intent = new Intent(PlaceListActivity.this, MapActivity.class);
                 intent.putExtras(bundle);
                 startActivity(intent);
@@ -136,7 +137,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
         setupRecyclerView();
 
         // User loader to fetch data from SQLite
-        getSupportLoaderManager().initLoader(PLACE_LOADER, null, PlaceListActivity.this);
+        getSupportLoaderManager().initLoader(PLACE_LOADER, null, this);
     }
 
     @Override
@@ -201,16 +202,16 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
             SpinnerAdapter spinnerAdapter = ArrayAdapter.createFromResource(getApplicationContext(),
                     R.array.nearby_places,
                     R.layout.spinner_item_layout);
-            final Spinner spinner = new Spinner(getSupportActionBar().getThemedContext());
-            spinner.setAdapter(spinnerAdapter);
-            spinner.setSelection(Arrays.asList(PLACE_TYPE).indexOf(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType()), false);
-            toolbar.addView(spinner, 0);
+            mSpinner = new Spinner(getSupportActionBar().getThemedContext());
+            mSpinner.setAdapter(spinnerAdapter);
+            mSpinner.setSelection(Arrays.asList(PLACE_TYPE).indexOf(PrefsManager.instance(getApplicationContext()).getCurrentPlaceType()), false);
+            toolbar.addView(mSpinner, 0);
 
             // Hack to keep onItemSelected from firing off on a newly instantiated Spinner : @check here: http://stackoverflow.com/q/2562248/2571277
-            spinner.post(new Runnable() {
+            mSpinner.post(new Runnable() {
                 @Override
                 public void run() {
-                    spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    mSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                         @Override
                         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                             PrefsManager.instance(getApplicationContext()).setCurrentPlaceType(PLACE_TYPE[position]);
@@ -237,21 +238,23 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
         ItemClickSupport.addTo(mRecyclerView).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
             @Override
             public void onItemClicked(RecyclerView recyclerView, int position, View v) {
+                PlaceListAdapter.PlaceViewHolder holder = (PlaceListAdapter.PlaceViewHolder) recyclerView.getChildViewHolder(v);
+                Bundle arguments = new Bundle();
+                arguments.putBoolean(Config.KEY_IS_TWO_PANE, mTwoPane);
+                arguments.putString(Config.KEY_PLACE_NAME, holder.name.getText().toString());
+                arguments.putString(Config.KEY_PLACE_ID, holder.id.getText().toString());
+                arguments.putString(Config.KEY_PLACE_PHOTO, holder.photo.getText().toString());
+                arguments.putString(Config.KEY_PLACE_VICINITY, holder.vicinity.getText().toString());
+
                 if (mTwoPane) {
-                    Bundle arguments = new Bundle();
-//                    arguments.putParcelable(Config.MOVIE_EXTRA, movieList.get(position));
-                    arguments.putBoolean(Config.KEY_IS_TWO_PANE, mTwoPane);
                     PlaceDetailFragment fragment = new PlaceDetailFragment();
                     fragment.setArguments(arguments);
                     getSupportFragmentManager().beginTransaction().replace(R.id.place_detail_container, fragment).commit();
                 } else {
                     Intent intent = new Intent(PlaceListActivity.this, PlaceDetailActivity.class);
-//                    intent.putExtra(Config.MOVIE_EXTRA, movieList.get(position));
-                    intent.putExtra(Config.KEY_IS_TWO_PANE, mTwoPane);
-
+                    intent.putExtras(arguments);
                     // Check if we're running on Android 5.0 or higher
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        PlaceListAdapter.PlaceViewHolder holder = (PlaceListAdapter.PlaceViewHolder) recyclerView.getChildViewHolder(v);
                         ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(PlaceListActivity.this, holder.icon, "photo");
                         startActivity(intent, options.toBundle());
                     } else {
@@ -264,7 +267,6 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
 
     /************************************************************/
     /*      Methods for CursorLoader with callback              */
-
     /************************************************************/
 
     @Override
@@ -364,15 +366,14 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
     /************************************************************/
 
     private void startNearbyPlaceService() {
-
         if (Config.isNetConnected(PlaceListActivity.this)) {
             /* Starting Download Service */
-            mNearbyPlaceResultReceiver = new NearbyPlaceResultReceiver(new Handler());
-            mNearbyPlaceResultReceiver.setReceiver(PlaceListActivity.this);
-            Intent intent = new Intent(Intent.ACTION_SYNC, null, this, NearbyPlaceService.class);
+            mServiceResultReceiver = new ServiceResultReceiver(new Handler());
+            mServiceResultReceiver.setReceiver(PlaceListActivity.this);
+            Intent intent = new Intent(Intent.ACTION_SYNC, null, this, PlaceListService.class);
 
             /* Send optional extras to Download IntentService */
-            intent.putExtra(Config.KEY_PLACE_RESULT_RECEIVER, mNearbyPlaceResultReceiver);
+            intent.putExtra(Config.KEY_RESULT_RECEIVER, mServiceResultReceiver);
             intent.putExtra(Config.KEY_PLACE_TYPE, PrefsManager.instance(getApplicationContext()).getCurrentPlaceType());
             intent.putExtra(Config.KEY_CURRENT_LOCATION, PrefsManager.instance(getApplicationContext()).getCurrentLocation());
 
@@ -428,10 +429,10 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
     @Override
     public void onReceiveResult(int resultCode, Bundle resultData) {
         switch (resultCode) {
-            case NearbyPlaceService.STATUS_RUNNING:
+            case PlaceListService.STATUS_RUNNING:
                 progress.show();
                 break;
-            case NearbyPlaceService.STATUS_FINISHED:
+            case PlaceListService.STATUS_FINISHED:
                 /* Hide progress & extract result from bundle */
                 if (progress != null && progress.isShowing()) {
                     progress.dismiss();
@@ -440,7 +441,7 @@ public class PlaceListActivity extends AppCompatActivity implements GoogleApiCli
                 // Update cursor with newly fetched Places
                 getSupportLoaderManager().restartLoader(PLACE_LOADER, null, PlaceListActivity.this);
                 break;
-            case NearbyPlaceService.STATUS_ERROR:
+            case PlaceListService.STATUS_ERROR:
                 /* Handle the error */
                 if (progress != null && progress.isShowing()) {
                     progress.dismiss();

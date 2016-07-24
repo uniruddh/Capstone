@@ -33,7 +33,7 @@
         android:layout_marginRight="16dp"
         app:layoutManager="LinearLayoutManager"
         tools:context=".gui.PlaceListActivity"
-        tools:listitem="@layout/place_list_content" />
+        tools:listitem="@layout/place_list_item" />
 
     <FrameLayout
         android:id="@+id/place_detail_container"
