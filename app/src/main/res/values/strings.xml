@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">Capstone</string>
+    <string name="app_name" translatable="false">Nearby Places</string>
     <string name="title_place_detail">Place Detail</string>
     <string name="title_activity_map">Map</string>
     <string name="widget_title">Nearby Places</string>
