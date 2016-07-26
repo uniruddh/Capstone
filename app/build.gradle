@@ -47,5 +47,4 @@ dependencies {
     compile 'com.google.maps.android:android-maps-utils:0.3.4'
     compile 'com.github.bumptech.glide:glide:3.6.1'
     compile 'com.androidessence:recyclerviewcursoradapter:1.0.0'
-    compile files('libs/gson-2.2.2.jar')
 }
