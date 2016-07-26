@@ -4,6 +4,19 @@ android {
     compileSdkVersion 24
     buildToolsVersion "23.0.3"
 
+    def keystorePropertiesFile = rootProject.file("keystore.properties")
+    def keystoreProperties = new Properties()
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+    signingConfigs {
+        config {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+
     defaultConfig {
         applicationId "com.astuter.capstone"
         minSdkVersion 14
@@ -15,21 +28,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-
-            def keystorePropertiesFile = rootProject.file("keystore.properties")
-            def keystoreProperties = new Properties()
-            keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-
-            signingConfigs {
-                release {
-                    config {
-                        keyAlias keystoreProperties['keyAlias']
-                        keyPassword keystoreProperties['keyPassword']
-                        storeFile file(keystoreProperties['storeFile'])
-                        storePassword keystoreProperties['storePassword']
-                    }
-                }
-            }
+            signingConfig signingConfigs.config
         }
     }
 }
